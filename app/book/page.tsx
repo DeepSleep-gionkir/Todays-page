@@ -8,11 +8,17 @@ import {
   getDocs,
   getFirestore,
   orderBy,
+  doc,
+  getDoc,
+  setDoc,
+  where,
 } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { Skeleton } from "@/app/components/ui/Skeleton";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
 import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
+import { useToast } from "@/app/context/ToastContext";
 
 interface HistoryItem {
   id: string;
@@ -30,9 +36,15 @@ interface HistoryItem {
 
 export default function MyBookPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Nickname Edit State
+  const [nickname, setNickname] = useState("");
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [tempNickname, setTempNickname] = useState("");
 
   const handlePrevPage = () => {
     if (currentIndex < history.length - 1) {
@@ -54,6 +66,15 @@ export default function MyBookPage() {
     const fetchHistory = async () => {
       try {
         const db = getFirestore(app);
+
+        // Fetch Nickname
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists() && userDocSnap.data().nickname) {
+          setNickname(userDocSnap.data().nickname);
+        } else {
+          setNickname(user.displayName || "Anonymous");
+        }
 
         // Fetch Characters from NEW STRUCTURE: users/{uid}/characters
         const charQ = query(
@@ -100,6 +121,58 @@ export default function MyBookPage() {
     fetchHistory();
   }, [user]);
 
+  const handleSaveNickname = async () => {
+    if (!user || !tempNickname.trim()) return;
+
+    // 1. Length Check
+    if (tempNickname.length > 10) {
+      showToast("닉네임은 10자 이내여야 합니다.", "error");
+      return;
+    }
+
+    try {
+      const db = getFirestore(app);
+
+      // 2. Duplicate Check (Exclude current user)
+      // Query "users" where "nickname" == tempNickname
+      const q = query(
+        collection(db, "users"),
+        where("nickname", "==", tempNickname)
+      );
+      const querySnapshot = await getDocs(q);
+
+      // If found, check if it's not me
+      let isDuplicate = false;
+      querySnapshot.forEach((doc) => {
+        if (doc.id !== user.uid) {
+          isDuplicate = true;
+        }
+      });
+
+      if (isDuplicate) {
+        showToast("이미 사용 중인 닉네임입니다.", "error");
+        return;
+      }
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        { nickname: tempNickname },
+        { merge: true }
+      );
+      setNickname(tempNickname);
+      setIsEditingNickname(false);
+      showToast("닉네임이 저장되었습니다.", "success");
+    } catch (e) {
+      console.error("Failed to save nickname", e);
+      showToast("닉네임 저장 실패", "error");
+    }
+  };
+
+  const startEditing = () => {
+    setTempNickname(nickname);
+    setIsEditingNickname(true);
+  };
+
   if (!user)
     return (
       <div className="text-center py-20 font-serif text-sub">
@@ -135,9 +208,44 @@ export default function MyBookPage() {
           <div className="font-serif text-sm tracking-[0.2em] opacity-80 uppercase">
             The Record of
           </div>
-          <h1 className="font-serif text-4xl font-bold tracking-tight text-[#F0E6D2]">
-            {user.displayName}
-          </h1>
+
+          <div className="flex items-center justify-center gap-2">
+            {isEditingNickname ? (
+              <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                <Input
+                  value={tempNickname}
+                  onChange={(e) => setTempNickname(e.target.value)}
+                  className="bg-transparent border-b border-[#F0E6D2] text-[#F0E6D2] font-serif text-3xl font-bold text-center w-auto min-w-[200px] h-12 px-2 py-1 rounded-none focus:ring-0 focus:border-[#D97757] placeholder:text-[#F0E6D2]/30"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveNickname}
+                  className="p-2 hover:bg-[#F0E6D2]/10 rounded-full text-[#F0E6D2] transition-colors"
+                >
+                  <Check size={20} />
+                </button>
+                <button
+                  onClick={() => setIsEditingNickname(false)}
+                  className="p-2 hover:bg-[#F0E6D2]/10 rounded-full text-[#F0E6D2]/60 hover:text-[#FF6B6B] transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            ) : (
+              <div className="group flex items-center justify-center gap-3 relative">
+                <h1 className="font-serif text-4xl font-bold tracking-tight text-[#F0E6D2]">
+                  {nickname}
+                </h1>
+                <button
+                  onClick={startEditing}
+                  className="absolute -right-8 opacity-0 group-hover:opacity-100 p-1.5 text-[#F0E6D2]/60 hover:text-[#F0E6D2] hover:bg-[#F0E6D2]/10 rounded-full transition-all"
+                  title="닉네임 수정"
+                >
+                  <Pencil size={16} />
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-center gap-12 pt-8">
             <div className="text-center">
