@@ -12,7 +12,7 @@ import {
 import { app } from "@/lib/firebase";
 import Link from "next/link";
 import { Trash2, ChevronDown, ChevronRight, Swords } from "lucide-react";
-import { Skeleton } from "@/app/components/ui/Skeleton";
+import PolygonSpinner from "@/app/components/ui/PolygonSpinner";
 
 interface AdminCharacter {
   id: string;
@@ -42,7 +42,7 @@ interface DateGroup {
 const ADMIN_EMAILS = ["silgoo2023@gmail.com"];
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -185,46 +185,28 @@ export default function AdminPage() {
     return group.battleLogs.filter((log) => log.playerA.uid === charUid);
   };
 
-  if (!user || (!isAdmin && user))
-    if (!isAdmin)
-      // Note: Allow local dev bypass if needed or keep strict
-      // For now strict
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center space-y-4 p-8">
-          <div className="text-4xl">🔒</div>
-          <h2 className="text-2xl font-serif font-bold text-title">
-            Admin Access Required
-          </h2>
-          <p className="text-sub">이 페이지에 접근할 권한이 없습니다.</p>
-          <Link href="/" className="text-[#D97757] hover:underline">
-            Return Home
-          </Link>
-        </div>
-      );
-
-  if (loading)
+  if (authLoading || (isAdmin && loading)) {
     return (
-      <div className="py-12 pb-32 max-w-4xl mx-auto px-4 md:px-0 space-y-8">
-        {/* Header Skeleton */}
-        <div className="flex items-end justify-between mb-8 border-b-2 border-border pb-4">
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-64 bg-input/30" />
-            <Skeleton className="h-4 w-96 bg-input/20" />
-          </div>
-          <Skeleton className="h-6 w-32 rounded-full bg-input/20" />
-        </div>
-
-        {/* Folder Groups Skeletons */}
-        <div className="space-y-6">
-          {[1, 2, 3].map((i) => (
-            <Skeleton
-              key={i}
-              className="h-16 w-full rounded-lg bg-surface/50 border border-border"
-            />
-          ))}
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh] animate-in fade-in duration-500">
+        <PolygonSpinner />
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4 p-8 animate-in fade-in zoom-in-95 duration-300">
+        <div className="text-4xl">🔒</div>
+        <h2 className="text-2xl font-serif font-bold text-title">
+          Admin Access Required
+        </h2>
+        <p className="text-sub">이 페이지에 접근할 권한이 없습니다.</p>
+        <Link href="/" className="text-[#D97757] hover:underline">
+          Return Home
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="py-12 pb-32 max-w-4xl mx-auto px-4 md:px-0">
