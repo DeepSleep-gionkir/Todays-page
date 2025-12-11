@@ -8,6 +8,8 @@ import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import Button from "@/app/components/ui/Button";
 
+import DownloadOptionsModal from "@/app/components/game/DownloadOptionsModal";
+
 interface CharacterData {
   id: string;
   name: string;
@@ -24,6 +26,7 @@ export default function CharacterDetailPage() {
   const router = useRouter();
   const [character, setCharacter] = useState<CharacterData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
@@ -68,20 +71,37 @@ export default function CharacterDetailPage() {
     fetchCharacter();
   }, [id, router]);
 
-  const handleDownload = async () => {
+  // Image download handler
+  const handleDownloadImage = async () => {
     const element = document.getElementById("character-card");
     if (!element) return;
 
     try {
-      const canvas = await html2canvas(element);
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        logging: true,
+      });
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `${character?.name || "character"}.png`;
       link.click();
     } catch (err) {
-      console.error("Download failed", err);
+      console.error(err);
     }
+  };
+
+  // JSON download handler
+  const handleDownloadJSON = () => {
+    if (!character) return;
+    const jsonString = JSON.stringify(character, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${character.name || "character"}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleBattleClick = () => {
@@ -142,7 +162,7 @@ export default function CharacterDetailPage() {
             )}
             {/* Download Button Overlay */}
             <button
-              onClick={handleDownload}
+              onClick={() => setShowDownloadModal(true)}
               className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors text-foreground shadow-sm"
             >
               <Download size={20} />
@@ -213,6 +233,12 @@ export default function CharacterDetailPage() {
           <span className="font-serif font-bold">오늘의 배틀 입장</span>
         </Button>
       </div>
+      <DownloadOptionsModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        onDownloadImage={handleDownloadImage}
+        onDownloadJSON={handleDownloadJSON}
+      />
     </div>
   );
 }

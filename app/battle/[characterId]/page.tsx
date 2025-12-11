@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { createBattleLog } from "@/app/actions/battle";
+import { generateDiaryEntry } from "@/app/actions/generate";
 
 export default function BattleMatchPage() {
   const { characterId } = useParams() as { characterId: string };
@@ -76,6 +77,17 @@ export default function BattleMatchPage() {
           opponent as { name: string; description: string; abilities: string[] }
         );
 
+        // 3.1 Generate Diary Entry
+        let diaryEntry = "";
+        try {
+          diaryEntry = await generateDiaryEntry("battle", {
+            name: myChar.name, // Required by type, though not used for battle logic
+            opponentName: opponent.name,
+          });
+        } catch (e) {
+          console.error("Diary Gen Error", e);
+        }
+
         // 4. Prepare Battle Data
         const battleData = {
           date: dateStr,
@@ -90,6 +102,7 @@ export default function BattleMatchPage() {
             imageUrl: opponent.imageUrl || "",
           },
           log: log,
+          narrative: diaryEntry,
           createdAt: new Date().toISOString(),
         };
 

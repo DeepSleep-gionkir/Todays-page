@@ -7,6 +7,7 @@ import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { Download } from "lucide-react";
 import html2canvas from "html2canvas";
+import DownloadOptionsModal from "@/app/components/game/DownloadOptionsModal";
 import Button from "@/app/components/ui/Button";
 
 interface BattleLogData {
@@ -16,6 +17,10 @@ interface BattleLogData {
   log: string;
 }
 
+// Define BattleLog interface based on BattleLogData, assuming it's the same for now
+// If BattleLog is different, it should be defined separately.
+type BattleLog = BattleLogData;
+
 export default function BattleLogPage() {
   const { characterId, logId } = useParams() as {
     characterId: string;
@@ -24,6 +29,8 @@ export default function BattleLogPage() {
   const [logData, setLogData] = useState<BattleLogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expired, setExpired] = useState(false);
+  const [battleLog, setBattleLog] = useState<BattleLog | null>(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   useEffect(() => {
     const fetchLog = async () => {
@@ -62,6 +69,7 @@ export default function BattleLogPage() {
           }
 
           setLogData(data);
+          setBattleLog(data); // Set battleLog for JSON download
         }
       } catch (err) {
         console.error(err);
@@ -72,11 +80,16 @@ export default function BattleLogPage() {
     fetchLog();
   }, [logId, characterId]);
 
-  const handleDownload = async () => {
+  // Image download handler
+  const handleDownloadImage = async () => {
     const element = document.getElementById("battle-log-card");
     if (!element) return;
     try {
-      const canvas = await html2canvas(element);
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        logging: true,
+        allowTaint: false,
+      });
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = dataUrl;
@@ -85,6 +98,19 @@ export default function BattleLogPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // JSON download handler
+  const handleDownloadJSON = () => {
+    if (!battleLog) return;
+    const jsonString = JSON.stringify(battleLog, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `battle_log_${logId}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading)
@@ -191,15 +217,21 @@ export default function BattleLogPage() {
       {/* Actions */}
       <div className="flex flex-col gap-3 max-w-lg mx-auto">
         <Button
-          onClick={handleDownload}
+          onClick={() => setShowDownloadModal(true)}
           variant="secondary"
           fullWidth
           size="lg"
         >
           <Download size={18} className="mr-2" />
-          페이지 저장 (이미지)
+          페이지 저장
         </Button>
       </div>
+      <DownloadOptionsModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        onDownloadImage={handleDownloadImage}
+        onDownloadJSON={handleDownloadJSON}
+      />
     </div>
   );
 }
