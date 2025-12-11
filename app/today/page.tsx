@@ -246,9 +246,9 @@ export default function TodayPage() {
 
                   <Link href={`/battle/log/${log.characterId}/${log.id}`}>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
-                      className="rounded-full px-4 text-xs h-8"
+                      className="rounded-full px-4 text-xs h-8 border border-input shadow-none bg-transparent hover:bg-black/5"
                     >
                       기록 보기
                     </Button>
