@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --background: #fdfbf9;
+  --foreground: #2d2d2d;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* These will be set by Next.js font loader */
+  --font-serif: var(--font-merriweather);
+  --font-sans: var(--font-noto-sans-kr);
+  --font-hand: var(--font-nanum-pen);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Theme Colors */
+  --accent: #d97757;
+  --accent-foreground: #ffffff;
+  --title: #1a1a1a;
+  --sub: #595959;
+  --background: #fdfbf9;
+  --foreground: #2d2d2d;
+  --surface: #f2f0eb;
+  --alert: #944c4c;
+  --border: #e6e4dd;
+  --input: #e0ddd5;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.8; /* leading-relaxed */
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif), serif;
+  letter-spacing: -0.025em; /* tracking-tight */
 }

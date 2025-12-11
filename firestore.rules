@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - each user can only access their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Characters subcollection
+      match /characters/{characterId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Logs subcollection under characters
+        match /logs/{logId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+    
+    // Records collection - public read for today, admin write
+    match /records/{dateId} {
+      allow read: if true; // Anyone can read records
+      
+      match /characters/{characterId} {
+        allow read: if true; // Anyone can read characters
+        allow write: if request.auth != null; // Authenticated users can write
+        
+        match /logs/{logId} {
+          allow read: if true; // Anyone can read logs
+          allow write: if request.auth != null; // Authenticated users can write
+        }
+      }
+    }
+    
+    // Legacy collections (for backward compatibility - can be removed later)
+    match /daily_characters/{characterId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    match /battle_logs/{logId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
