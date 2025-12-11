@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 // import { useRouter } from "next/navigation"; // Removed as we are merging create page here
@@ -11,10 +11,13 @@ import Input from "@/app/components/ui/Input";
 import { useToast } from "@/app/context/ToastContext";
 import LoadingOverlay from "@/app/components/game/LoadingOverlay";
 // Assuming there is a verifyUser / createCharacter action? We might need to import logic from create page
+import { useRouter } from "next/navigation"; // Added router
+import { doc, getDoc, setDoc, getFirestore } from "firebase/firestore"; // Ensure imports
+import { app } from "@/lib/firebase";
 
 export default function Home() {
   const { user, loading, signInWithGoogle } = useAuth();
-  // const router = useRouter(); // Removed
+  const router = useRouter();
   const { showToast } = useToast();
 
   const [name, setName] = useState("");
@@ -27,7 +30,52 @@ export default function Home() {
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Todo: Check if character already created today. If so, redirect to detail.
+  // Nickname State
+  const [nickname, setNickname] = useState("");
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [tempNickname, setTempNickname] = useState("");
+
+  // Redirect if character already exists for today
+  useEffect(() => {
+    const checkExistingCharacter = async () => {
+      if (!user) return;
+      const db = getFirestore(app); // Ensure app is imported or available via context/import
+      const dateStr = new Date().toISOString().split("T")[0];
+      const charId = `${dateStr}_${user.uid}`;
+
+      try {
+        const docRef = doc(db, "users", user.uid, "characters", charId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          router.push(`/character/${charId}`);
+        }
+      } catch (e) {
+        console.error("Check failed", e);
+      }
+    };
+
+    const checkNickname = async () => {
+      if (!user) return;
+      const db = getFirestore(app);
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists() && userDocSnap.data().nickname) {
+          setNickname(userDocSnap.data().nickname);
+        } else {
+          setShowNicknameModal(true);
+        }
+      } catch (e) {
+        console.error("Nickname check failed", e);
+      }
+    };
+
+    if (user && !loading) {
+      checkExistingCharacter();
+      checkNickname();
+    }
+  }, [user, loading, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -47,6 +95,23 @@ export default function Home() {
         setAspectRatio(img.width / img.height);
         setImagePreview(previewUrl);
       };
+    }
+  };
+
+  const handleSaveNickname = async () => {
+    if (!user || !tempNickname.trim()) return;
+    try {
+      const db = getFirestore(app);
+      await setDoc(
+        doc(db, "users", user.uid),
+        { nickname: tempNickname },
+        { merge: true }
+      );
+      setNickname(tempNickname);
+      setShowNicknameModal(false);
+    } catch (e) {
+      console.error("Failed to save nickname", e);
+      showToast("닉네임 저장 실패", "error");
     }
   };
 
@@ -70,7 +135,7 @@ export default function Home() {
         { ref, uploadBytes, getDownloadURL },
         { storage },
         { doc, setDoc, getFirestore },
-        { generateCharacterDetails },
+        { generateCharacterDetails, generateDiaryEntry }, // Import here or below? imported below via import()
       ] = await Promise.all([
         import("firebase/storage"),
         import("@/lib/firebase"),
@@ -92,10 +157,35 @@ export default function Home() {
 
       const generationPromise = generateCharacterDetails(name, description);
 
+      // Save Nickname Logic
+      const handleSaveNickname = async () => {
+        if (!user || !tempNickname.trim()) return;
+        try {
+          const db = getFirestore(app);
+          await setDoc(
+            doc(db, "users", user.uid),
+            { nickname: tempNickname },
+            { merge: true }
+          );
+          setNickname(tempNickname);
+          setShowNicknameModal(false);
+        } catch (e) {
+          console.error("Failed to save nickname", e);
+          showToast("닉네임 저장 실패", "error");
+        }
+      };
+
       // Wait for both to complete
-      const [imageUrl, generatedData] = await Promise.all([
+      // Also generate simple diary summary simultaneously
+      const summaryPromise = generateDiaryEntry("character", {
+        name,
+        description,
+      });
+
+      const [imageUrl, generatedData, shortSummary] = await Promise.all([
         uploadPromise,
         generationPromise,
+        summaryPromise,
       ]);
 
       // All heavy lifting done, now finalizing
@@ -109,12 +199,13 @@ export default function Home() {
       const characterData = {
         id: charId,
         uid: user.uid,
-        authorName: user.displayName || "Anonymous",
+        authorName: nickname || user.displayName || "Anonymous",
         name,
         description,
         imageUrl,
         abilities: generatedData.abilities,
         narrative: generatedData.narrative,
+        summary: shortSummary, // Save the short diary entry
         date: dateStr,
         createdAt: new Date().toISOString(),
         stats: { wins: 0, losses: 0, battles: 0 },

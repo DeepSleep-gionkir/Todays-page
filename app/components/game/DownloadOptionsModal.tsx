@@ -18,7 +18,12 @@ export default function DownloadOptionsModal({
   onDownloadJSON,
 }: DownloadOptionsModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="저장 방식 선택">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="저장 방식 선택"
+      className="bg-[#FDFBF7] shadow-xl border-none"
+    >
       <div className="grid grid-cols-2 gap-4 pt-2">
         <button
           onClick={() => {
@@ -26,12 +31,12 @@ export default function DownloadOptionsModal({
             onClose();
           }}
           className={cn(
-            "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-transparent transition-all duration-200",
-            "bg-[#D97757]/5 hover:bg-[#D97757]/10 hover:border-[#D97757]/30 hover:scale-[1.02]",
+            "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-border/10 transition-all duration-200",
+            "bg-white shadow-sm hover:shadow-md hover:scale-[1.02] hover:border-[#D97757]/30",
             "group"
           )}
         >
-          <div className="p-3 bg-white rounded-full shadow-sm group-hover:shadow-md transition-shadow">
+          <div className="p-3 bg-[#D97757]/10 rounded-full group-hover:bg-[#D97757]/20 transition-colors">
             <ImageIcon size={28} className="text-[#D97757]" />
           </div>
           <div className="text-center">
@@ -46,12 +51,12 @@ export default function DownloadOptionsModal({
             onClose();
           }}
           className={cn(
-            "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-transparent transition-all duration-200",
-            "bg-[#2C2C2C]/5 hover:bg-[#2C2C2C]/10 hover:border-[#2C2C2C]/30 hover:scale-[1.02]",
+            "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-border/10 transition-all duration-200",
+            "bg-white shadow-sm hover:shadow-md hover:scale-[1.02] hover:border-[#2C2C2C]/30",
             "group"
           )}
         >
-          <div className="p-3 bg-white rounded-full shadow-sm group-hover:shadow-md transition-shadow">
+          <div className="p-3 bg-[#2C2C2C]/5 rounded-full group-hover:bg-[#2C2C2C]/10 transition-colors">
             <FileJson size={28} className="text-[#2C2C2C]" />
           </div>
           <div className="text-center">

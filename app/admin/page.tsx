@@ -261,12 +261,12 @@ export default function AdminPage() {
                     className="text-sub group-hover:text-[#D97757]"
                   />
                 )}
-                <span className="font-bold font-mono text-lg tracking-wide">
+                <span className="font-bold font-mono text-sm md:text-lg tracking-wide truncate">
                   {group.date}
                 </span>
               </div>
               <div
-                className={`text-xs font-bold px-2 py-1 rounded bg-black/20 text-white`}
+                className={`text-[10px] md:text-xs font-bold px-2 py-1 rounded bg-black/20 text-white whitespace-nowrap`}
               >
                 {group.characters.length} Items
               </div>
@@ -274,7 +274,7 @@ export default function AdminPage() {
 
             {/* Folder Content */}
             {group.isOpen && (
-              <div className="p-6 space-y-6 border-l-2 border-[#D97757]/20 ml-6 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="p-4 md:p-6 space-y-6 border-l-2 border-[#D97757]/20 ml-2 md:ml-6 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 {!group.loaded ? (
                   <div className="flex justify-center py-8">
                     <PolygonSpinner className="w-8 h-8 opacity-50" />
@@ -295,33 +295,35 @@ export default function AdminPage() {
                         <div className="absolute -left-7 top-6 w-5 h-px bg-[#D97757]/20" />
 
                         {/* Character Card (Mini List Item) */}
-                        <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-soft border border-border/50 hover:border-[#D97757]/50 transition-colors">
-                          <div className="w-16 h-16 bg-surface rounded-md overflow-hidden shrink-0 border border-border">
-                            {char.imageUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={char.imageUrl}
-                                alt={char.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs text-sub">
-                                N/A
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-white rounded-lg shadow-soft border border-border/50 hover:border-[#D97757]/50 transition-colors">
+                          <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-surface rounded-md overflow-hidden shrink-0 border border-border">
+                              {char.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={char.imageUrl}
+                                  alt={char.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs text-sub">
+                                  N/A
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-serif font-bold text-lg text-[#1A1A1A] truncate">
+                                {char.name}
+                              </h3>
+                              <p className="text-xs text-sub truncate mb-1">
+                                Created by{" "}
+                                <span className="font-bold text-[#D97757]">
+                                  {char.authorName}
+                                </span>
+                              </p>
+                              <div className="text-[10px] text-sub/60 font-mono">
+                                {char.id}
                               </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-serif font-bold text-lg text-[#1A1A1A] truncate">
-                              {char.name}
-                            </h3>
-                            <p className="text-xs text-sub truncate mb-1">
-                              Created by{" "}
-                              <span className="font-bold text-[#D97757]">
-                                {char.authorName}
-                              </span>
-                            </p>
-                            <div className="text-[10px] text-sub/60 font-mono">
-                              {char.id}
                             </div>
                           </div>
                           <div className="flex flex-col gap-2 shrink-0">

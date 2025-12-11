@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Download, Swords } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import Button from "@/app/components/ui/Button";
@@ -77,17 +77,22 @@ export default function CharacterDetailPage() {
     if (!element) return;
 
     try {
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        logging: true,
+      // html-to-image handles modern CSS better
+      const dataUrl = await toPng(element, {
+        cacheBust: true,
+        backgroundColor: "#ffffff", // Ensure opaque background
+        canvasWidth: element.offsetWidth * 2, // Scale up for quality
+        canvasHeight: element.offsetHeight * 2,
+        pixelRatio: 2,
       });
-      const dataUrl = canvas.toDataURL("image/png");
+
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `${character?.name || "character"}.png`;
       link.click();
     } catch (err) {
-      console.error(err);
+      console.error("Image download failed:", err);
+      // Fallback or user notification could go here
     }
   };
 
@@ -222,12 +227,12 @@ export default function CharacterDetailPage() {
           Actually user said "Battle Button: Bottom fixed(Mobile) or Right floating(PC)." 
           Let's try to implement that. 
       */}
-      <div className="fixed bottom-20 right-4 left-4 md:left-auto md:bottom-12 md:right-12 z-40 md:w-auto">
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 w-full max-w-xs md:max-w-md px-4">
         <Button
           onClick={handleBattleClick}
           size="lg"
           variant="primary"
-          className="w-full md:w-xs md:px-8 shadow-xl animate-pulse-slow hover:animate-none"
+          className="w-full shadow-xl animate-pulse-slow hover:animate-none flex items-center justify-center"
         >
           <Swords size={20} className="mr-2" />
           <span className="font-serif font-bold">오늘의 배틀 입장</span>

@@ -19,9 +19,11 @@ interface HistoryItem {
   createdAt: string;
   name?: string;
   description?: string;
-  narrative?: string; // Added narrative field
+  narrative?: string;
+  summary?: string; // Short diary-style entry
   playerB?: { name: string };
-  characterId?: string; // For battle logs to reference parent character
+  characterId?: string;
+  characterName?: string; // Add character name
 }
 
 export default function MyBookPage() {
@@ -60,7 +62,8 @@ export default function MyBookPage() {
               date: logData.date,
               createdAt: logData.createdAt,
               playerB: logData.playerB,
-              characterId: charDoc.id, // Store reference to character
+              characterId: charDoc.id,
+              characterName: charDoc.data().name, // Pass character name
             } as HistoryItem);
           });
         }
@@ -172,41 +175,46 @@ export default function MyBookPage() {
                 <div className="relative z-10 font-hand text-2xl text-foreground leading-[1.55rem]">
                   {item.type === "character" ? (
                     <>
-                      <div className="font-bold text-3xl mb-1 text-[#D97757] relative inline-block">
+                      <div className="font-bold text-3xl mb-4 text-[#D97757] relative inline-block font-serif tracking-tight">
                         {item.name}
                         {/* Ink smudge effect */}
                         <div className="absolute -bottom-2 -right-4 w-8 h-8 bg-[#D97757]/10 rounded-full blur-xl -z-10" />
                       </div>
-                      <div className="mt-1">
-                        {item.narrative || (
-                          <>
-                            오늘은{" "}
-                            <span className="text-[#1A1A1A]">
-                              &quot;{item.name}&quot;
-                            </span>
-                            이(가) 되어 하루를 보냈다.{" "}
-                            {item.description && item.description.length > 60
-                              ? item.description.slice(0, 60) + "..."
-                              : item.description}
-                          </>
-                        )}
+                      <div className="mt-2 text-[#1A1A1A]">
+                        {/* content: Summary -> Narrative -> Fallback */}
+                        <p className="font-serif italic leading-[2.5] tracking-wide text-lg whitespace-pre-line opacity-90">
+                          {item.summary || item.narrative || (
+                            <>
+                              오늘은{" "}
+                              <span className="not-italic font-bold">
+                                &quot;{item.name}&quot;
+                              </span>
+                              이(가) 되어 하루를 보냈다. {item.description}
+                            </>
+                          )}
+                        </p>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="font-bold text-3xl mb-1 text-foreground relative inline-block">
                         Battle Log
+                        <span className="block text-sm font-serif text-[#D97757] mt-1 tracking-normal font-normal">
+                          for {item.characterName}
+                        </span>
                       </div>
-                      <div className="mt-1">
-                        {item.narrative || (
-                          <>
-                            <span className="text-[#D97757]">
-                              {item.playerB?.name}
-                            </span>
-                            와(과) 마주쳤다. 그 날의 치열했던 기록이 여기
-                            남아있다.
-                          </>
-                        )}
+                      <div className="mt-2 text-[#1A1A1A]">
+                        <p className="font-serif italic leading-[2.5] tracking-wide text-lg whitespace-pre-line opacity-90">
+                          {item.narrative || (
+                            <>
+                              <span className="not-italic font-bold text-[#D97757]">
+                                &quot;{item.playerB?.name}&quot;
+                              </span>
+                              와(과) 마주쳤다. 그 날의 치열했던 기록이 여기
+                              남아있다.
+                            </>
+                          )}
+                        </p>
                       </div>
                     </>
                   )}

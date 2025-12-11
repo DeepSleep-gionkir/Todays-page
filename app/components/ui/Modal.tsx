@@ -11,6 +11,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  className?: string;
 }
 
 export default function Modal({
@@ -19,6 +20,7 @@ export default function Modal({
   title,
   children,
   footer,
+  className,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +43,8 @@ export default function Modal({
         ref={modalRef}
         className={cn(
           "w-full max-w-md bg-canvas rounded-lg shadow-modal border border-white p-6 relative animate-in zoom-in-95 duration-200",
-          "flex flex-col gap-4"
+          "flex flex-col gap-4",
+          className
         )}
       >
         <div className="flex items-center justify-between">

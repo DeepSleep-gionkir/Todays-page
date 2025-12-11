@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Book } from "lucide-react";
+import { Home, Book, Newspaper } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -38,10 +38,29 @@ export default function BottomNav() {
         <div className="w-px h-8 bg-border hidden md:block" />
 
         <Link
+          href="/today"
+          className={`group flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+            isActive("/today")
+              ? "text-[#D97757]"
+              : "text-gray-400 hover:text-foreground"
+          }`}
+        >
+          <Newspaper
+            size={24}
+            strokeWidth={isActive("/today") ? 2.5 : 2}
+            className="group-hover:scale-110 transition-transform"
+          />
+          <span className="text-[10px] md:text-sm font-sans font-medium">
+            Today
+          </span>
+        </Link>
+        <div className="w-px h-8 bg-border hidden md:block" />
+
+        <Link
           href="/book"
           className={`group flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
             isActive("/book")
-              ? "text-accent"
+              ? "text-[#D97757]"
               : "text-gray-400 hover:text-foreground"
           }`}
         >

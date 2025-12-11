@@ -73,16 +73,27 @@ export default function BattleMatchPage() {
 
         // 3. Generate Log
         const { log } = await createBattleLog(
-          myChar as { name: string; description: string; abilities: string[] },
-          opponent as { name: string; description: string; abilities: string[] }
+          myChar as {
+            name: string;
+            description: string;
+            abilities: string[];
+            narrative: string;
+          },
+          opponent as {
+            name: string;
+            description: string;
+            abilities: string[];
+            narrative: string;
+          }
         );
 
         // 3.1 Generate Diary Entry
         let diaryEntry = "";
         try {
           diaryEntry = await generateDiaryEntry("battle", {
-            name: myChar.name, // Required by type, though not used for battle logic
+            name: myChar.name,
             opponentName: opponent.name,
+            battleLog: log, // Pass the actual log
           });
         } catch (e) {
           console.error("Diary Gen Error", e);
@@ -95,14 +106,17 @@ export default function BattleMatchPage() {
             uid: myChar.uid,
             name: myChar.name,
             imageUrl: myChar.imageUrl || "",
+            abilities: myChar.abilities || [],
           },
           playerB: {
             uid: opponent.uid,
             name: opponent.name,
             imageUrl: opponent.imageUrl || "",
+            abilities: opponent.abilities || [],
           },
           log: log,
           narrative: diaryEntry,
+          summary: diaryEntry, // Store as summary for My Book
           createdAt: new Date().toISOString(),
         };
 

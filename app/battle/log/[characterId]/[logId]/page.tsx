@@ -6,13 +6,13 @@ import Link from "next/link";
 import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { Download } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import DownloadOptionsModal from "@/app/components/game/DownloadOptionsModal";
 import Button from "@/app/components/ui/Button";
 
 interface BattleLogData {
-  playerA: { name: string };
-  playerB: { name: string };
+  playerA: { name: string; abilities?: string[] };
+  playerB: { name: string; abilities?: string[] };
   date: string;
   log: string;
 }
@@ -85,18 +85,20 @@ export default function BattleLogPage() {
     const element = document.getElementById("battle-log-card");
     if (!element) return;
     try {
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        logging: true,
-        allowTaint: false,
+      const dataUrl = await toPng(element, {
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+        canvasWidth: element.offsetWidth * 2,
+        canvasHeight: element.offsetHeight * 2,
+        pixelRatio: 2,
       });
-      const dataUrl = canvas.toDataURL("image/png");
+
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `battle_log_${logId}.png`;
       link.click();
     } catch (err) {
-      console.error(err);
+      console.error("Image download failed", err);
     }
   };
 
@@ -187,19 +189,35 @@ export default function BattleLogPage() {
               );
             }
 
-            // Ability Highlight / Special Text
-            // Logic: **Text** -> Bold + Orange + Highlight
-            const parts = line.split(/(\*\*.*?\*\*)/g);
+            // Highlighting Logic
+            // 1. Get all ability names
+            const allAbilities = [
+              ...(logData.playerA.abilities || []),
+              ...(logData.playerB.abilities || []),
+            ].map((a) => a.split(":")[0].trim()); // Extract name before colon
+
+            // 2. Process Line
+            // Remove markdown bold markers first to clean up
+            const cleanLine = line.replace(/\*\*/g, "");
+
+            // 3. Highlight abilities
+            if (allAbilities.length === 0) return <p key={i}>{cleanLine}</p>;
+
+            // Escape special regex chars in ability names
+            const escapedAbilities = allAbilities.map((name) =>
+              name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            );
+            const regex = new RegExp(`(${escapedAbilities.join("|")})`, "g");
+
+            const parts = cleanLine.split(regex);
+
             return (
               <p key={i}>
                 {parts.map((part, j) => {
-                  if (part.startsWith("**") && part.endsWith("**")) {
+                  if (allAbilities.includes(part)) {
                     return (
-                      <span
-                        key={j}
-                        className="font-bold text-[#D97757] bg-[#D97757]/10 px-1 mx-0.5 rounded-sm box-decoration-clone"
-                      >
-                        {part.slice(2, -2)}
+                      <span key={j} className="text-[#D97757]">
+                        {part}
                       </span>
                     );
                   }
