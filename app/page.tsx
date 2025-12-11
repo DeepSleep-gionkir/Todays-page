@@ -157,24 +157,6 @@ export default function Home() {
 
       const generationPromise = generateCharacterDetails(name, description);
 
-      // Save Nickname Logic
-      const handleSaveNickname = async () => {
-        if (!user || !tempNickname.trim()) return;
-        try {
-          const db = getFirestore(app);
-          await setDoc(
-            doc(db, "users", user.uid),
-            { nickname: tempNickname },
-            { merge: true }
-          );
-          setNickname(tempNickname);
-          setShowNicknameModal(false);
-        } catch (e) {
-          console.error("Failed to save nickname", e);
-          showToast("닉네임 저장 실패", "error");
-        }
-      };
-
       // Wait for both to complete
       // Also generate simple diary summary simultaneously
       const summaryPromise = generateDiaryEntry("character", {
@@ -302,12 +284,54 @@ export default function Home() {
   // 4.2 Home - Creation View
   return (
     <div className="flex flex-col max-w-lg mx-auto py-8 animate-in fade-in duration-500 pb-24">
+      {/* Nickname Modal */}
+      <AnimatePresence>
+        {showNicknameModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#2C2C2C] border border-[#F0E6D2]/20 p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6"
+            >
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-serif font-bold text-[#F0E6D2]">
+                  작가명 설정
+                </h2>
+                <p className="text-[#F0E6D2]/60 text-sm">
+                  당신의 이야기에 기록될 이름을 정해주세요.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Input
+                  value={tempNickname}
+                  onChange={(e) => setTempNickname(e.target.value)}
+                  placeholder="닉네임 (10자 이내)"
+                  maxLength={10}
+                  className="bg-[#1A1A1A] border-[#F0E6D2]/20 text-[#F0E6D2] text-center text-lg h-14"
+                  autoFocus
+                />
+                <Button
+                  onClick={handleSaveNickname}
+                  fullWidth
+                  size="lg"
+                  className="bg-[#F0E6D2] text-[#1A1A1A] hover:bg-white"
+                >
+                  시작하기
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Welcome Message */}
       <section className="mb-12 text-center md:text-left pt-8">
         <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1A1A1A] mb-3">
           Good Morning, <br className="md:hidden" />
           <span className="text-[#D97757]">
-            {user.displayName?.split(" ")[0]}
+            {nickname || user.displayName?.split(" ")[0]}
           </span>
           .
         </h2>
@@ -385,7 +409,6 @@ export default function Home() {
         </div>
 
         {/* Image Upload Placeholder */}
-        {/* Image Upload Placeholder */}
         <motion.label
           layout
           htmlFor="image-upload"
@@ -448,7 +471,6 @@ export default function Home() {
         </motion.label>
 
         {/* Warning Box */}
-        {/* Warning Box */}
         <div className="bg-[#E6E4DD]/40 border border-[#E6E4DD] p-5 rounded-xl flex gap-4 items-start">
           <Info className="text-sub shrink-0 mt-0.5" size={20} />
           <div className="space-y-1">
@@ -463,10 +485,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Action Button - Ensure it's rendered! */}
+        {/* Action Button */}
         <div className="pt-4 pb-20">
-          {" "}
-          {/* Extra padding bottom for safe mobile view */}
           <Button
             onClick={handleCreate}
             fullWidth

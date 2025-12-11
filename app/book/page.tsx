@@ -17,7 +17,7 @@ import { app } from "@/lib/firebase";
 import { Skeleton } from "@/app/components/ui/Skeleton";
 import { ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
 import Button from "@/app/components/ui/Button";
-import Input from "@/app/components/ui/Input";
+
 import { useToast } from "@/app/context/ToastContext";
 
 interface HistoryItem {

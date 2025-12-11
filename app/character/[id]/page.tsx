@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Download, Swords } from "lucide-react";
 import { toPng } from "html-to-image";
-import { doc, getDoc, getFirestore } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  limit,
+} from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import Button from "@/app/components/ui/Button";
 
@@ -18,6 +26,7 @@ interface CharacterData {
   abilities: string[];
   narrative: string;
   authorName: string;
+  uid?: string;
   date: string;
 }
 
@@ -29,32 +38,61 @@ export default function CharacterDetailPage() {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [expired, setExpired] = useState(false);
 
+  const [battleCount, setBattleCount] = useState(0);
+
   useEffect(() => {
     const fetchCharacter = async () => {
       if (!id) return;
       try {
         const db = getFirestore(app);
-
-        // Parse id to get date: format is {date}_{uid}
         const [dateStr] = (id as string).split("_");
+
         if (!dateStr) {
           setLoading(false);
           return;
         }
 
-        // Fetch from NEW STRUCTURE: records/{date}/characters/{charId}
+        // 1. Fetch Character Data
         const docRef = doc(db, "records", dateStr, "characters", id as string);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data() as CharacterData;
 
-          // Check if this is today's character
+          // 2. Nickname Sync (Dynamic Fetch)
+          // If uid exists, try to fetch current nickname from users collection
+          if (data.uid) {
+            try {
+              const userDocRef = doc(db, "users", data.uid);
+              const userDocSnap = await getDoc(userDocRef);
+              if (userDocSnap.exists() && userDocSnap.data().nickname) {
+                // Override static authorName with dynamic one
+                data.authorName = userDocSnap.data().nickname;
+              }
+            } catch (err) {
+              console.warn("Failed to sync nickname", err);
+            }
+          }
+
+          // 3. Battle Limit Check
+          // Count logs in records/{date}/characters/{id}/logs
+          const logsRef = collection(
+            db,
+            "records",
+            dateStr,
+            "characters",
+            id as string,
+            "logs"
+          );
+          // Optimize: Check if at least one exists
+          const q = query(logsRef, limit(1));
+          const logsSnap = await getDocs(q);
+          setBattleCount(logsSnap.size);
+
+          // Check if today
           const todayStr = new Date().toISOString().split("T")[0];
           if (data.date !== todayStr) {
             setExpired(true);
-            setLoading(false);
-            return;
           }
 
           setCharacter(data);
@@ -232,10 +270,13 @@ export default function CharacterDetailPage() {
           onClick={handleBattleClick}
           size="lg"
           variant="primary"
-          className="w-full shadow-xl animate-pulse-slow hover:animate-none flex items-center justify-center"
+          className="w-full shadow-xl animate-pulse-slow hover:animate-none flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:animate-none"
+          disabled={battleCount > 0}
         >
           <Swords size={20} className="mr-2" />
-          <span className="font-serif font-bold">오늘의 배틀 입장</span>
+          <span className="font-serif font-bold">
+            {battleCount > 0 ? "오늘의 배틀 완료" : "오늘의 배틀 입장"}
+          </span>
         </Button>
       </div>
       <DownloadOptionsModal
