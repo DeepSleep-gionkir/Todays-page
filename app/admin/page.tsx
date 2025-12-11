@@ -36,6 +36,7 @@ interface DateGroup {
   characters: AdminCharacter[];
   battleLogs: AdminBattleLog[];
   isOpen: boolean;
+  loaded: boolean; // Track if data has been fetched
 }
 
 // Admin email whitelist
@@ -48,101 +49,112 @@ export default function AdminPage() {
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email || "");
 
+  // Reusable fetch function
+  const fetchGroupData = async (dateStr: string) => {
+    try {
+      const db = getFirestore(app);
+
+      // 1. Fetch Characters for this date
+      const charSnap = await getDocs(
+        collection(db, "records", dateStr, "characters")
+      );
+
+      const newCharacters: AdminCharacter[] = [];
+      const newBattleLogs: AdminBattleLog[] = [];
+
+      if (!charSnap.empty) {
+        for (const charDoc of charSnap.docs) {
+          const charData = charDoc.data();
+          newCharacters.push({
+            id: charDoc.id,
+            uid: charData.uid,
+            name: charData.name,
+            imageUrl: charData.imageUrl,
+            authorName: charData.authorName,
+            date: charData.date,
+          } as AdminCharacter);
+
+          // 2. Fetch Logs for this character
+          const logsSnap = await getDocs(
+            collection(db, "records", dateStr, "characters", charDoc.id, "logs")
+          );
+          logsSnap.docs.forEach((logDoc) => {
+            const logData = logDoc.data();
+            newBattleLogs.push({
+              id: logDoc.id,
+              date: logData.date,
+              playerA: logData.playerA,
+              playerB: logData.playerB,
+              createdAt: logData.createdAt,
+            } as AdminBattleLog);
+          });
+        }
+      }
+
+      // Update State
+      setDateGroups((prev) =>
+        prev.map((g) =>
+          g.date === dateStr
+            ? {
+                ...g,
+                characters: newCharacters,
+                battleLogs: newBattleLogs,
+                loaded: true,
+              }
+            : g
+        )
+      );
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
 
-    const fetchAllData = async () => {
-      try {
-        const db = getFirestore(app);
-        const dateMap = new Map<string, DateGroup>();
+    const initData = async () => {
+      // Initialize 30 days
+      const now = new Date();
+      const dates: string[] = [];
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().split("T")[0]);
+      }
 
-        // Get recent dates (last 30 days for example)
-        const now = new Date();
-        const dates: string[] = [];
-        for (let i = 0; i < 30; i++) {
-          const d = new Date(now);
-          d.setDate(d.getDate() - i);
-          dates.push(d.toISOString().split("T")[0]);
-        }
+      // Create initial placeholders
+      const initialGroups: DateGroup[] = dates.map((date, index) => ({
+        date,
+        characters: [],
+        battleLogs: [],
+        isOpen: index === 0, // Open Today by default
+        loaded: false,
+      }));
 
-        // Fetch from records/{date}/characters for each date
-        for (const dateStr of dates) {
-          const charSnap = await getDocs(
-            collection(db, "records", dateStr, "characters")
-          );
+      setDateGroups(initialGroups);
+      setLoading(false); // Initial structure ready
 
-          if (charSnap.empty) continue;
-
-          if (!dateMap.has(dateStr)) {
-            dateMap.set(dateStr, {
-              date: dateStr,
-              characters: [],
-              battleLogs: [],
-              isOpen: false,
-            });
-          }
-
-          const group = dateMap.get(dateStr)!;
-
-          for (const charDoc of charSnap.docs) {
-            const charData = charDoc.data();
-            group.characters.push({
-              id: charDoc.id,
-              uid: charData.uid,
-              name: charData.name,
-              imageUrl: charData.imageUrl,
-              authorName: charData.authorName,
-              date: charData.date,
-            } as AdminCharacter);
-
-            // Fetch logs for this character
-            const logsSnap = await getDocs(
-              collection(
-                db,
-                "records",
-                dateStr,
-                "characters",
-                charDoc.id,
-                "logs"
-              )
-            );
-            logsSnap.docs.forEach((logDoc) => {
-              const logData = logDoc.data();
-              group.battleLogs.push({
-                id: logDoc.id,
-                date: logData.date,
-                playerA: logData.playerA,
-                playerB: logData.playerB,
-                createdAt: logData.createdAt,
-              } as AdminBattleLog);
-            });
-          }
-        }
-
-        // Sort by date descending
-        const sortedGroups = Array.from(dateMap.values()).sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-
-        // Open today's group by default
-        const todayStr = new Date().toISOString().split("T")[0];
-        sortedGroups.forEach((g) => {
-          if (g.date === todayStr) g.isOpen = true;
-        });
-
-        setDateGroups(sortedGroups);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      // Lazy load Today's data immediately
+      if (initialGroups.length > 0) {
+        await fetchGroupData(initialGroups[0].date);
       }
     };
-    fetchAllData();
+
+    initData();
   }, [user]);
 
   const toggleGroup = (date: string) => {
     setDateGroups((prev) =>
-      prev.map((g) => (g.date === date ? { ...g, isOpen: !g.isOpen } : g))
+      prev.map((g) => {
+        if (g.date === date) {
+          // If opening and not loaded, trigger fetch
+          if (!g.isOpen && !g.loaded) {
+            fetchGroupData(date);
+          }
+          return { ...g, isOpen: !g.isOpen };
+        }
+        return g;
+      })
     );
   };
 
@@ -263,7 +275,11 @@ export default function AdminPage() {
             {/* Folder Content */}
             {group.isOpen && (
               <div className="p-6 space-y-6 border-l-2 border-[#D97757]/20 ml-6 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                {group.characters.length === 0 ? (
+                {!group.loaded ? (
+                  <div className="flex justify-center py-8">
+                    <PolygonSpinner className="w-8 h-8 opacity-50" />
+                  </div>
+                ) : group.characters.length === 0 ? (
                   <p className="text-sm text-sub italic pl-2">
                     No data recorded for this date.
                   </p>
