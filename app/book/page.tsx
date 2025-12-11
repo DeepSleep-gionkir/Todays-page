@@ -209,39 +209,41 @@ export default function MyBookPage() {
             The Record of
           </div>
 
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 relative min-h-[60px]">
             {isEditingNickname ? (
-              <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
-                <Input
+              <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-200">
+                <input
                   value={tempNickname}
                   onChange={(e) => setTempNickname(e.target.value)}
-                  className="bg-transparent border-b border-[#F0E6D2] text-[#F0E6D2] font-serif text-3xl font-bold text-center w-auto min-w-[200px] h-12 px-2 py-1 rounded-none focus:ring-0 focus:border-[#D97757] placeholder:text-[#F0E6D2]/30"
+                  className="bg-transparent border-none text-[#F0E6D2] font-serif text-4xl font-bold text-center w-[200px] px-0 py-0 focus:ring-0 focus:outline-none placeholder:text-[#F0E6D2]/30"
                   autoFocus
                 />
-                <button
-                  onClick={handleSaveNickname}
-                  className="p-2 hover:bg-[#F0E6D2]/10 rounded-full text-[#F0E6D2] transition-colors"
-                >
-                  <Check size={20} />
-                </button>
-                <button
-                  onClick={() => setIsEditingNickname(false)}
-                  className="p-2 hover:bg-[#F0E6D2]/10 rounded-full text-[#F0E6D2]/60 hover:text-[#FF6B6B] transition-colors"
-                >
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={handleSaveNickname}
+                    className="p-2 bg-black/20 hover:bg-[#F0E6D2]/20 rounded-full text-[#F0E6D2] transition-colors"
+                  >
+                    <Check size={20} />
+                  </button>
+                  <button
+                    onClick={() => setIsEditingNickname(false)}
+                    className="p-2 bg-black/20 hover:bg-[#F0E6D2]/20 rounded-full text-[#FF6B6B] transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="group flex items-center justify-center gap-3 relative">
+              <div className="flex items-center justify-center gap-3">
                 <h1 className="font-serif text-4xl font-bold tracking-tight text-[#F0E6D2]">
                   {nickname}
                 </h1>
                 <button
                   onClick={startEditing}
-                  className="absolute -right-8 opacity-0 group-hover:opacity-100 p-1.5 text-[#F0E6D2]/60 hover:text-[#F0E6D2] hover:bg-[#F0E6D2]/10 rounded-full transition-all"
+                  className="p-2 text-[#F0E6D2]/60 hover:text-[#F0E6D2] hover:bg-[#F0E6D2]/10 rounded-full transition-all"
                   title="닉네임 수정"
                 >
-                  <Pencil size={16} />
+                  <Pencil size={20} />
                 </button>
               </div>
             )}
