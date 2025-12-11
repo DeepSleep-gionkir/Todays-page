@@ -11,6 +11,8 @@ import {
 } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { Skeleton } from "@/app/components/ui/Skeleton";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Button from "@/app/components/ui/Button";
 
 interface HistoryItem {
   id: string;
@@ -30,6 +32,21 @@ export default function MyBookPage() {
   const { user } = useAuth();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handlePrevPage = () => {
+    if (currentIndex < history.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  };
+
+  const currentItem = history[currentIndex];
 
   useEffect(() => {
     if (!user) return;
@@ -144,23 +161,51 @@ export default function MyBookPage() {
       </div>
 
       {/* Journal Entries (History) */}
-      <div className="relative pl-6 md:pl-0">
-        <div className="absolute left-6 md:left-0 top-0 bottom-0 w-px bg-border md:hidden" />{" "}
-        {/* Mobile timeline line */}
-        <div className="space-y-12">
-          {history.map((item, index) => (
-            <div
-              key={item.id}
-              className="relative animate-in fade-in slide-in-from-bottom-4 duration-700"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              {/* Date Marker */}
-              <div className="mb-2 pl-4 text-xs font-serif text-sub tracking-widest opacity-60 uppercase">
-                {item.date}
-              </div>
+      {/* Journal Entries (History) */}
+      <div className="relative pl-0 md:pl-0">
+        {/* Navigation Controls */}
+        <div className="flex items-center justify-between mb-8 px-4">
+          <Button
+            variant="secondary"
+            // size="sm" // Removed size prop to fix lint interaction if any, or stick to defaults
+            onClick={handlePrevPage}
+            disabled={currentIndex >= history.length - 1}
+            className="rounded-full w-12 h-12 p-0 flex items-center justify-center disabled:opacity-30"
+          >
+            <ChevronLeft size={24} />
+          </Button>
 
+          <div className="text-sm font-serif text-sub tracking-widest uppercase">
+            {currentItem ? (
+              <>
+                Page {history.length - currentIndex} / {history.length}
+                <br />
+                <span className="opacity-60 text-xs">{currentItem.date}</span>
+              </>
+            ) : (
+              "Empty"
+            )}
+          </div>
+
+          <Button
+            variant="secondary"
+            // size="sm"
+            onClick={handleNextPage}
+            disabled={currentIndex <= 0}
+            className="rounded-full w-12 h-12 p-0 flex items-center justify-center disabled:opacity-30"
+          >
+            <ChevronRight size={24} />
+          </Button>
+        </div>
+
+        <div className="space-y-12">
+          {currentItem && (
+            <div
+              key={currentItem.id} // Re-render on ID change
+              className="relative animate-in fade-in slide-in-from-bottom-4 duration-500"
+            >
               {/* Paper Entry */}
-              <div className="bg-canvas shadow-sm border border-border/50 p-6 md:p-8 rounded-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+              <div className="bg-canvas shadow-sm border border-border/50 p-6 md:p-8 rounded-sm relative overflow-hidden group hover:shadow-md transition-shadow min-h-[400px]">
                 {/* Paper Lines background */}
                 <div
                   className="absolute inset-0 pointer-events-none opacity-30"
@@ -173,23 +218,24 @@ export default function MyBookPage() {
                 />
 
                 <div className="relative z-10 font-hand text-2xl text-foreground leading-[1.55rem]">
-                  {item.type === "character" ? (
+                  {currentItem.type === "character" ? (
                     <>
                       <div className="font-bold text-3xl mb-4 text-[#D97757] relative inline-block font-serif tracking-tight">
-                        {item.name}
+                        {currentItem.name}
                         {/* Ink smudge effect */}
                         <div className="absolute -bottom-2 -right-4 w-8 h-8 bg-[#D97757]/10 rounded-full blur-xl -z-10" />
                       </div>
                       <div className="mt-2 text-[#1A1A1A]">
                         {/* content: Summary -> Narrative -> Fallback */}
                         <p className="font-serif italic leading-[2.5] tracking-wide text-lg whitespace-pre-line opacity-90">
-                          {item.summary || item.narrative || (
+                          {currentItem.summary || currentItem.narrative || (
                             <>
                               오늘은{" "}
                               <span className="not-italic font-bold">
-                                &quot;{item.name}&quot;
+                                &quot;{currentItem.name}&quot;
                               </span>
-                              이(가) 되어 하루를 보냈다. {item.description}
+                              이(가) 되어 하루를 보냈다.{" "}
+                              {currentItem.description}
                             </>
                           )}
                         </p>
@@ -200,15 +246,15 @@ export default function MyBookPage() {
                       <div className="font-bold text-3xl mb-1 text-foreground relative inline-block">
                         Battle Log
                         <span className="block text-sm font-serif text-[#D97757] mt-1 tracking-normal font-normal">
-                          for {item.characterName}
+                          for {currentItem.characterName}
                         </span>
                       </div>
                       <div className="mt-2 text-[#1A1A1A]">
                         <p className="font-serif italic leading-[2.5] tracking-wide text-lg whitespace-pre-line opacity-90">
-                          {item.narrative || (
+                          {currentItem.narrative || (
                             <>
                               <span className="not-italic font-bold text-[#D97757]">
-                                &quot;{item.playerB?.name}&quot;
+                                &quot;{currentItem.playerB?.name}&quot;
                               </span>
                               와(과) 마주쳤다. 그 날의 치열했던 기록이 여기
                               남아있다.
@@ -221,7 +267,7 @@ export default function MyBookPage() {
                 </div>
               </div>
             </div>
-          ))}
+          )}
 
           {history.length === 0 && (
             <div className="text-center py-20 text-sub font-hand text-2xl opacity-50">

@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, getFirestore } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import Link from "next/link";
-import { Swords, Eye, User, ScrollText } from "lucide-react";
+import {
+  Swords,
+  Eye,
+  User,
+  ScrollText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import PolygonSpinner from "@/app/components/ui/PolygonSpinner";
 import Button from "@/app/components/ui/Button";
 
@@ -34,13 +41,26 @@ export default function TodayPage() {
   const [characters, setCharacters] = useState<TodayCharacter[]>([]);
   const [battleLogs, setBattleLogs] = useState<TodayBattleLog[]>([]);
   const [todayDate, setTodayDate] = useState("");
+  const [currentDateObj, setCurrentDateObj] = useState<Date | null>(null);
 
+  // Initialize Date
   useEffect(() => {
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+    setTodayDate(dateStr);
+    setCurrentDateObj(now);
+  }, []);
+
+  // Fetch Data when todayDate changes
+  useEffect(() => {
+    if (!todayDate) return;
+
     const fetchData = async () => {
+      setLoading(true);
       try {
         const db = getFirestore(app);
-        const dateStr = new Date().toISOString().split("T")[0];
-        setTodayDate(dateStr);
+        const dateStr = todayDate; // Use state
+        // setTodayDate(dateStr); // Removed to avoid loop
 
         // 1. Fetch Characters for Today
         const charRef = collection(db, "records", dateStr, "characters");
@@ -106,7 +126,24 @@ export default function TodayPage() {
     };
 
     fetchData();
-  }, []);
+  }, [todayDate]);
+
+  const handleDateChange = (days: number) => {
+    if (!todayDate) return;
+    const current = new Date(todayDate);
+    const target = new Date(current);
+    target.setDate(target.getDate() + days);
+
+    const targetStr = target.toISOString().split("T")[0];
+    const todayStr = new Date().toISOString().split("T")[0];
+    const minDate = "2025-12-11";
+
+    if (targetStr > todayStr) return; // Future check
+    if (targetStr < minDate) return; // Past check
+
+    setTodayDate(targetStr);
+    setCurrentDateObj(target); // Update obj for comparison if needed
+  };
 
   if (loading) {
     return (
@@ -119,38 +156,67 @@ export default function TodayPage() {
   return (
     <div className="py-8 pb-32 max-w-2xl mx-auto px-4">
       {/* Header */}
-      <div className="text-center mb-8 space-y-2">
+      <div className="text-center mb-8 space-y-4">
         <h1 className="text-3xl font-serif font-bold text-[#1A1A1A]">
           오늘의 페이지
         </h1>
-        <p className="text-sub font-mono text-sm tracking-wider">{todayDate}</p>
+
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => handleDateChange(-1)}
+            disabled={todayDate === "2025-12-11" || loading}
+            className="p-2 rounded-full hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft size={20} className="text-sub" />
+          </button>
+
+          <p className="text-sub font-mono text-sm tracking-wider min-w-[100px]">
+            {todayDate}
+          </p>
+
+          <button
+            onClick={() => handleDateChange(1)}
+            disabled={
+              todayDate === new Date().toISOString().split("T")[0] || loading
+            }
+            className="p-2 rounded-full hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight size={20} className="text-sub" />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-[#E6E4DD] rounded-full mb-8 relative">
+
+      {/* Tabs */}
+      <div className="flex p-1 bg-[#E6E4DD] rounded-full mb-8 relative w-full max-w-sm mx-auto">
         <button
           onClick={() => setActiveTab("characters")}
-          className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
             activeTab === "characters"
               ? "bg-white text-[#D97757] shadow-sm"
               : "text-sub hover:text-[#1A1A1A]"
           }`}
         >
-          <User size={16} />
+          <User size={16} className="shrink-0" />
           캐릭터
-          <span className="text-xs opacity-60 ml-1">({characters.length})</span>
+          <span className="text-xs opacity-60 ml-0.5">
+            ({characters.length})
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("logs")}
-          className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap ${
             activeTab === "logs"
               ? "bg-white text-[#D97757] shadow-sm"
               : "text-sub hover:text-[#1A1A1A]"
           }`}
         >
-          <ScrollText size={16} />
+          <ScrollText size={16} className="shrink-0" />
           배틀 로그
-          <span className="text-xs opacity-60 ml-1">({battleLogs.length})</span>
+          <span className="text-xs opacity-60 ml-0.5">
+            ({battleLogs.length})
+          </span>
         </button>
       </div>
 
