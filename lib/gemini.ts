@@ -6,5 +6,5 @@ const apiKey =
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export const model = genAI.getGenerativeModel({
-  model: "gemini-3.0-flash-preview",
+  model: "gemini-3-flash-preview",
 });
